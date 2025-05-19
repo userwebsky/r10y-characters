@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  r10y-character:
+    build: .
+    image: r10y-character:latest
+    container_name: r10y-character-container
+    ports:
+      - "7777:7777"
+    depends_on:
+      mariadb_db:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 7777
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb_db:3306/r10y-character?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: user_compose
+      SPRING_DATASOURCE_PASSWORD: password_compose
+      SPRING_FLYWAY_ENABLED: 'true'
+      RICKANDMORTY_API_URL: https://rickandmortyapi.com/api
+    networks:
+      - r10y-character-network
+
+  mariadb_db:
+    image: mariadb:10.11
+    container_name: mariadb_container
+    ports:
+      - "3307:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: root_password
+      MARIADB_DATABASE: r10y-character
+      MARIADB_USER: user_compose
+      MARIADB_PASSWORD: password_compose
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$${MARIADB_USER} -p$${MARIADB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - r10y-character-network
+
+volumes:
+  mariadb_data:
+
+networks:
+  r10y-character-network:
+    driver: bridge
